@@ -458,58 +458,64 @@
         }
 
         function sendOrderWhatsApp() {
-    if (cart.length === 0) {
-        alert("Agregá al menos un producto al carrito.");
-        return;
-    }
+            if (cart.length === 0) {
+                alert("Agregá al menos un producto al carrito.");
+                return;
+            }
 
-    const nameInput = document.getElementById('client-name');
-    const addressInput = document.getElementById('client-address');
-    const notesInput = document.getElementById('client-notes');
+            const nameInput = document.getElementById('client-name');
+            const addressInput = document.getElementById('client-address');
+            const paymentSelect = document.getElementById('client-payment-method');
+            const notesInput = document.getElementById('client-notes');
 
-    if (!nameInput || !addressInput) {
-        alert("Error: No se encontraron los campos del cliente.");
-        return;
-    }
+            if (!nameInput || !addressInput || !paymentSelect) {
+                alert("Error: No se encontraron los campos del formulario.");
+                return;
+            }
 
-    const name = nameInput.value.trim();
-    const address = addressInput.value.trim();
-    const notes = notesInput ? notesInput.value.trim() : '';
+            const name = nameInput.value.trim();
+            const address = addressInput.value.trim();
+            const paymentMethod = paymentSelect.value;
+            const notes = notesInput ? notesInput.value.trim() : '';
 
-    if (!name || !address) {
-        alert("Por favor completá tu nombre y dirección.");
-        return;
-    }
+            if (!name || !address) {
+                alert("Por favor completá tu nombre y dirección.");
+                return;
+            }
 
-    // Encabezado
-    let text = `*NUEVO PEDIDO - NALDO*\n\n`;
-    text += `*Cliente:* ${name}\n`;
-    text += `*Dirección:* ${address}\n`;
-    text += `*Método de Pago:* ${paymentMethod}\n`;
-    if (notes) text += `*Notas de envío:* ${notes}\n`;
-    
-    text += `\n*Detalle del Pedido:*\n`;
+            if (!paymentMethod) {
+                alert("Por favor selecciona una forma de pago.");
+                return;
+            }
 
-    // Items
-    cart.forEach((item, i) => {
-        text += `\n${i + 1}. *${item.nombre}* ($${item.precioTotal})`;
-        
-        if (item.extras && item.extras.length > 0) {
-            text += `\n       -Extras: ${item.extras.map(e => e.nombre).join(', ')}`;
+            // Encabezado
+            let text = `*NUEVO PEDIDO - NALDO*\n\n`;
+            text += `*Cliente:* ${name}\n`;
+            text += `*Dirección:* ${address}\n`;
+            text += `*Método de Pago:* ${paymentMethod}\n`;
+            if (notes) text += `*Notas de envío:* ${notes}\n`;
+            
+            text += `\n*Detalle del Pedido:*\n`;
+
+            // Items
+            cart.forEach((item, i) => {
+                text += `\n${i + 1}. *${item.nombre}* ($${item.precioTotal})`;
+                
+                if (item.extras && item.extras.length > 0) {
+                    text += `\n       -Extras: ${item.extras.map(e => e.nombre).join(', ')}`;
+                }
+                if (item.nota) {
+                    text += `\n       -Aclaración: ${item.nota}`;
+                }
+            });
+
+            // Total Final
+            const grandTotal = cart.reduce((sum, item) => sum + item.precioTotal, 0);
+            text += `\n\n*TOTAL FINAL: $${grandTotal}*`;
+
+            const phone = "5493815649551";
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
         }
-        if (item.nota) {
-            text += `\n       -Aclaración: ${item.nota}`;
-        }
-    });
-
-    // Total Final
-    const grandTotal = cart.reduce((sum, item) => sum + item.precioTotal, 0);
-    text += `\n\n*TOTAL FINAL: $${grandTotal}*`;
-
-    const phone = "5493815649551";
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
-}
-
 
         function addExtraInput(valName = '', valPrice = '') {
             const container = document.getElementById('extras-inputs-container');
