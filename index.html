@@ -457,44 +457,55 @@
             `).join('');
         }
 
-        function sendWhatsAppOrder() {
-  const name = document.getElementById('client-name').value.trim();
-  const address = document.getElementById('client-address').value.trim();
-  const payment = document.getElementById('client-payment').value;
-  const notes = document.getElementById('client-notes').value.trim();
-
-  // Validaciones
-  if (!name || !address) {
-    alert("Por favor completa tu nombre y dirección.");
-    return;
-  }
-
-  if (!payment) {
-    alert("Por favor selecciona una forma de pago.");
-    return;
-  }
-
-  let message = `🍔 *NUEVO PEDIDO - NALDO FOOD*\n\n`;
-  message += `👤 *Cliente:* ${name}\n`;
-  message += `📍 *Dirección:* ${address}\n`;
-  message += `💳 *Pago:* ${payment}\n`;
-  if (notes) message += `📝 *Notas:* ${notes}\n`;
-  
-  message += `\n🛒 *DETALLE DEL PEDIDO:*\n`;
-
-  cart.forEach(item => {
-    message += `• ${item.title} (x${item.quantity}) - $${item.price * item.quantity}\n`;
-    if (item.options && item.options.length > 0) {
-      message += `  └ Extras: ${item.options.join(', ')}\n`;
+        function sendOrderWhatsApp() {
+    if (cart.length === 0) {
+        alert("Agregá al menos un producto al carrito.");
+        return;
     }
-  });
 
-  message += `\n💰 *TOTAL:* $${calculateTotal()}`;
+    const nameInput = document.getElementById('client-name');
+    const addressInput = document.getElementById('client-address');
+    const notesInput = document.getElementById('client-notes');
 
-  const phone = "5493815649551"; // Número de WhatsApp del comercio
-  const encodedMessage = encodeURIComponent(message);
-  
-  window.open(`https://wa.me/${phone}?text=${encodedMessage}`, '_blank');
+    // Verificar que los elementos existan en el DOM
+    if (!nameInput || !addressInput) {
+        console.error("No se encontraron los inputs 'client-name' o 'client-address' en el HTML.");
+        alert("Error en el formulario. Verifica los campos del cliente.");
+        return;
+    }
+
+    const name = nameInput.value.trim();
+    const address = addressInput.value.trim();
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    if (!name || !address) {
+        alert("Por favor completá tu nombre y dirección.");
+        return;
+    }
+
+    let text = `*NUEVO PEDIDO - NALDO*\n\n`;
+    text += `*Cliente:* ${name}\n`;
+    text += `*Dirección:* ${address}\n`;
+    if (notes) text += `*Notas de envío:* ${notes}\n`;
+    text += `\n*Detalle del Pedido:*\n`;
+
+    cart.forEach((item, i) => {
+        text += `\n${i + 1}. *${item.nombre}* ($${item.precioTotal})`;
+        if (item.extras && item.extras.length > 0) {
+            text += `\n   Extras: ${item.extras.map(e => e.nombre).join(', ')}`;
+        }
+        if (item.nota) {
+            text += `\n   Aclaración: ${item.nota}`;
+        }
+    });
+
+    const grandTotal = cart.reduce((sum, item) => sum + item.precioTotal, 0);
+    text += `\n\n*TOTAL FINAL: $${grandTotal}*`;
+
+    // Formato internacional completo con el signo '+'
+    const phone = "+5493815649551";
+    
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
 }
 
         function addExtraInput(valName = '', valPrice = '') {
