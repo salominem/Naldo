@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naldo - Menú Digital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Fuente Moderna Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .scrollbar-none::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-none {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 min-h-screen pb-16">
+
+    <script>
+        const SUPABASE_URL = "https://qxrsfiqxnubvbubpqoju.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_FIw0yvbsDmOiObN-pu9ZnQ_L5yMLGnh";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    </script>
+
+    <!-- Header Blanco Moderno -->
+    <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/80 text-slate-900 p-4 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
+                    🍔
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+                        Naldo <span class="bg-amber-500 text-slate-950 text-[10px] uppercase font-black px-1.5 py-0.5 rounded-md">Food</span>
+                    </h1>
+                    <p class="text-xs text-amber-600 font-semibold">Menú & Pedidos online</p>
+                </div>
+            </div>
+            <button onclick="toggleMenu()" class="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 flex items-center justify-center text-lg transition active:scale-95" aria-label="Abrir menú">
+                <i class="fa-solid fa-bars-staggered"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Menú Lateral -->
+    <div id="side-menu" class="hidden fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm flex justify-end">
+        <div class="bg-white border-l border-slate-200 w-72 h-full p-6 shadow-2xl flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-8 pb-4 border-b border-slate-100">
+                    <h2 class="font-bold text-lg text-slate-900">Opciones</h2>
+                    <button onclick="toggleMenu()" class="text-slate-400 hover:text-slate-700 p-1"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+                <div id="auth-section" class="space-y-2">
+                    <button id="btn-login-modal" onclick="openLoginModal()" class="w-full text-left py-3 px-4 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 font-medium flex items-center gap-3 transition">
+                        <i class="fa-solid fa-lock text-amber-500"></i> Acceso Dueño
+                    </button>
+                    <button id="btn-admin-panel" onclick="openAdminModal()" class="hidden w-full text-left py-3 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 border border-amber-500/30 font-semibold flex items-center gap-3 transition">
+                        <i class="fa-solid fa-sliders text-amber-500"></i> Panel de Control
+                    </button>
+                </div>
+            </div>
+            <button id="btn-logout" onclick="logout()" class="hidden w-full py-3 px-4 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+            </button>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-md mx-auto px-4 mt-6 space-y-6">
+
+        <!-- Categorías Pills -->
+        <div id="categories-container" class="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none"></div>
+
+        <!-- Lista de Productos -->
+        <div id="products-container" class="space-y-4"></div>
+
+        <!-- Carrito -->
+        <div class="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-sm space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h2 class="text-base font-bold text-slate-900 flex items-center gap-2.5">
+                    <i class="fa-solid fa-basket-shopping text-amber-500"></i> Tu Pedido
+                </h2>
+                <span class="bg-amber-500/10 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full border border-amber-500/20" id="cart-count">0 ítems</span>
+            </div>
+            
+            <div id="cart-items" class="divide-y divide-slate-100 text-sm space-y-2">
+                <p id="empty-cart-msg" class="text-slate-400 text-center py-6 text-xs font-medium">Aún no agregaste productos al carrito</p>
+            </div>
+            
+            <div id="cart-total-container" class="hidden border-t border-slate-100 pt-3 flex justify-between items-center font-bold text-base text-slate-900">
+                <span class="text-slate-500 text-sm">Total del pedido:</span>
+                <span id="cart-total" class="text-amber-600 text-xl font-extrabold">$0</span>
+            </div>
+        </div>
+
+        <!-- Formulario Envío -->
+        <div class="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-sm space-y-3.5">
+            <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-location-dot text-amber-500"></i> Datos para el Envío
+            </h2>
+            <input type="text" id="client-name" placeholder="Tu Nombre completo" class="w-full p-3.5 bg-slate-50 border border-slate-200 focus:border-amber-500/80 focus:bg-white rounded-2xl text-sm text-slate-900 placeholder:text-slate-400 outline-none transition">
+            <input type="text" id="client-address" placeholder="Dirección de entrega (Ej: San Martín 123)" class="w-full p-3.5 bg-slate-50 border border-slate-200 focus:border-amber-500/80 focus:bg-white rounded-2xl text-sm text-slate-900 placeholder:text-slate-400 outline-none transition">
+            <textarea id="client-notes" placeholder="Aclaraciones (Ej: Abonaré con Transferencia / Paga con $10.000)" class="w-full p-3.5 bg-slate-50 border border-slate-200 focus:border-amber-500/80 focus:bg-white rounded-2xl text-sm text-slate-900 placeholder:text-slate-400 outline-none h-20 resize-none transition"></textarea>
+            
+            <button onclick="sendOrderWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-emerald-600/20 active:scale-[0.99] transition flex justify-center items-center gap-2.5 text-sm">
+                <i class="fa-brands fa-whatsapp text-xl"></i> Enviar Pedido por WhatsApp
+            </button>
+        </div>
+    </main>
+
+    <!-- Modal Login -->
+    <div id="modal-login" class="hidden fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+            <h3 class="font-bold text-lg text-slate-900">Acceso Dueño</h3>
+            <input type="email" id="login-email" placeholder="Correo electrónico" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 outline-none focus:border-amber-500">
+            <input type="password" id="login-pass" placeholder="Contraseña" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 outline-none focus:border-amber-500">
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeLoginModal()" class="w-1/2 py-3 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-xs">Cancelar</button>
+                <button onclick="login()" class="w-1/2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl text-xs transition shadow-md">Ingresar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Admin -->
+    <div id="modal-admin" class="hidden fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5 my-8 max-h-[90vh] overflow-y-auto text-slate-800">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-lg text-slate-900">Panel de Administración</h3>
+                <button onclick="closeAdminModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <button onclick="toggleCategoryManager()" class="w-full border border-slate-200 bg-slate-50 hover:bg-slate-100 text-amber-700 font-semibold py-2.5 rounded-xl text-xs flex justify-center items-center gap-2 transition">
+                <i class="fa-solid fa-folder-plus"></i> Gestionar Categorías
+            </button>
+
+            <div id="category-manager-section" class="hidden p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <h5 class="font-bold text-xs text-amber-600 uppercase tracking-wider">Categorías del Menú</h5>
+                
+                <div class="flex gap-2">
+                    <input type="text" id="new-cat-name" placeholder="Nueva categoría..." class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs outline-none text-slate-900 focus:border-amber-500">
+                    <button onclick="addCategory()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs whitespace-nowrap">
+                        + Agregar
+                    </button>
+                </div>
+
+                <div id="categories-admin-list" class="space-y-1 pt-1 max-h-32 overflow-y-auto divide-y divide-slate-200 text-xs"></div>
+            </div>
+
+            <form id="product-form" onsubmit="saveProduct(event)" class="space-y-3 border-b border-slate-100 pb-5">
+                <h4 id="form-title" class="font-bold text-sm text-slate-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-amber-500"></i> Nuevo Producto
+                </h4>
+                
+                <input type="hidden" id="prod-id">
+                <input type="text" id="prod-nombre" placeholder="Nombre del producto" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none text-slate-900 focus:border-amber-500">
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <select id="prod-categoria" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none font-medium text-slate-800 cursor-pointer focus:border-amber-500"></select>
+                    </div>
+                    <div>
+                        <input type="number" id="prod-precio" min="0" placeholder="Precio ($)" required class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none text-slate-900 focus:border-amber-500">
+                    </div>
+                </div>
+
+                <textarea id="prod-descripcion" placeholder="Descripción (ingredientes, tamaño...)" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm h-16 resize-none outline-none text-slate-900 focus:border-amber-500"></textarea>
+
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-semibold text-slate-500">Agregados / Extras</label>
+                        <button type="button" onclick="addExtraInput()" class="text-xs text-amber-600 hover:underline font-medium">+ Agregar Extra</button>
+                    </div>
+                    <div id="extras-inputs-container" class="space-y-2"></div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" id="btn-submit-product" class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl text-xs transition shadow-md">
+                        Guardar Producto
+                    </button>
+                    <button type="button" id="btn-cancel-edit" onclick="resetForm()" class="hidden bg-slate-100 text-slate-700 font-semibold px-4 py-3 rounded-xl text-xs">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+
+            <div class="space-y-2">
+                <h4 class="font-semibold text-xs text-slate-400 uppercase tracking-wider">Productos Existentes</h4>
+                <div id="admin-products-list" class="max-h-40 overflow-y-auto divide-y divide-slate-100 text-xs"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Principal -->
+    <script>
+        let products = [];
+        let cart = [];
+        let customCategories = [];
+        let activeCategory = "Todas";
+
+        async function fetchCategories() {
+            const { data, error } = await _supabase.from('categorias').select('*').order('id', { ascending: true });
+            if (error) {
+                console.error("Error al cargar categorías:", error);
+                return;
+            }
+            customCategories = data ? data.map(c => c.nombre) : [];
+            renderCategories();
+            renderCategorySelect();
+        }
+
+        async function fetchProducts() {
+            const { data, error } = await _supabase.from('productos').select('*').order('id', { ascending: true });
+            if (error) {
+                console.error("Error al cargar productos:", error);
+                return;
+            }
+            products = data || [];
+            renderProducts();
+            renderAdminProducts();
+        }
+
+        async function loadAppData() {
+            await fetchCategories();
+            await fetchProducts();
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('categories-container');
+            const allCategories = ["Todas", ...customCategories];
+
+            container.innerHTML = allCategories.map(cat => `
+                <button onclick="setCategory('${cat}')" class="px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-200 ${
+                    activeCategory === cat 
+                    ? 'bg-slate-900 text-white shadow-md scale-[1.02]' 
+                    : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                }">
+                    ${cat}
+                </button>
+            `).join('');
+        }
+
+        function renderCategorySelect() {
+            const select = document.getElementById('prod-categoria');
+            select.innerHTML = customCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+
+            const list = document.getElementById('categories-admin-list');
+            if (list) {
+                list.innerHTML = customCategories.map(cat => `
+                    <div class="py-2 flex justify-between items-center text-slate-700">
+                        <span class="font-medium">${cat}</span>
+                        <button onclick="deleteCategory('${cat}')" class="text-red-500 hover:text-red-600 p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function toggleCategoryManager() {
+            document.getElementById('category-manager-section').classList.toggle('hidden');
+        }
+
+        async function addCategory() {
+            const input = document.getElementById('new-cat-name');
+            const name = input.value.trim();
+            if (!name) return;
+
+            if (customCategories.some(c => c.toLowerCase() === name.toLowerCase())) {
+                alert("La categoría ya existe.");
+                return;
+            }
+
+            const { error } = await _supabase.from('categorias').insert([{ nombre: name }]);
+            if (error) {
+                alert("Error al agregar categoría: " + error.message);
+                return;
+            }
+
+            input.value = '';
+            await fetchCategories();
+        }
+
+        async function deleteCategory(catName) {
+            if (!confirm(`¿Eliminar la categoría "${catName}"?`)) return;
+
+            const { error } = await _supabase.from('categorias').delete().eq('nombre', catName);
+            if (error) {
+                alert("Error al eliminar categoría: " + error.message);
+                return;
+            }
+
+            if (activeCategory === catName) activeCategory = "Todas";
+            await fetchCategories();
+            renderProducts();
+        }
+
+        function setCategory(cat) {
+            activeCategory = cat;
+            renderCategories();
+            renderProducts();
+        }
+
+        function renderProducts() {
+            const container = document.getElementById('products-container');
+            const filtered = activeCategory === "Todas" ? products : products.filter(p => p.categoria === activeCategory);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-400 py-10 text-xs font-medium">No hay productos en esta categoría.</p>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => {
+                const hasExtras = p.extras && Array.isArray(p.extras) && p.extras.length > 0;
+                return `
+                <div class="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-sm space-y-4 transition hover:shadow-md hover:border-slate-300" id="product-card-${p.id}">
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="space-y-1">
+                            <span class="text-[10px] font-bold tracking-wider text-emerald-700 uppercase bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200/60">${p.categoria}</span>
+                            <h3 class="font-bold text-slate-900 text-base mt-2">${p.nombre}</h3>
+                            ${p.descripcion ? `<p class="text-slate-500 text-xs leading-relaxed">${p.descripcion}</p>` : ''}
+                        </div>
+                        <span class="font-black text-slate-900 text-lg bg-slate-50 px-3 py-1.5 rounded-2xl border border-slate-200/80">$${p.precio}</span>
+                    </div>
+
+                    ${hasExtras ? `
+                        <div class="space-y-2 pt-1 border-t border-slate-100">
+                            <p class="text-[10px] font-bold tracking-wider text-slate-400 uppercase">Agregados / Extras:</p>
+                            <div class="space-y-1.5">
+                                ${p.extras.map((ex, idx) => `
+                                    <label class="flex items-center justify-between p-2.5 bg-slate-50 hover:bg-slate-100/80 rounded-2xl cursor-pointer text-xs transition border border-slate-200/60">
+                                        <div class="flex items-center gap-2.5">
+                                            <input type="checkbox" onchange="updateCardTotal(${p.id})" data-extra-idx="${idx}" class="product-extra-cb-${p.id} w-4 h-4 rounded text-amber-500 focus:ring-0 bg-white border-slate-300 cursor-pointer">
+                                            <span class="font-medium text-slate-700">${ex.nombre}</span>
+                                        </div>
+                                        <span class="font-bold text-slate-900">+$${ex.precio}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <input type="text" id="note-input-${p.id}" placeholder="Nota (Ej: Sin cebolla, aderezo aparte...)" class="w-full p-3 bg-slate-50 border border-slate-200/80 focus:bg-white rounded-2xl text-xs text-slate-900 placeholder:text-slate-400 outline-none focus:border-amber-500/80 transition">
+
+                    <button onclick="addCardToCart(${p.id})" class="w-full bg-slate-900 hover:bg-amber-500 hover:text-slate-950 text-white font-bold py-3.5 rounded-2xl shadow-sm transition-all duration-200 text-xs flex justify-between items-center px-4 active:scale-[0.98]">
+                        <span>+ Agregar al pedido</span>
+                        <span class="font-black" id="btn-price-${p.id}">$${p.precio}</span>
+                    </button>
+                </div>
+            `}).join('');
+        }
+
+        function updateCardTotal(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            const checkboxes = document.querySelectorAll(`.product-extra-cb-${productId}:checked`);
+            let total = Number(product.precio);
+
+            checkboxes.forEach(cb => {
+                const idx = parseInt(cb.getAttribute('data-extra-idx'));
+                if (product.extras && product.extras[idx]) {
+                    total += Number(product.extras[idx].precio);
+                }
+            });
+
+            document.getElementById(`btn-price-${productId}`).innerText = `$${total}`;
+        }
+
+        function addCardToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) return;
+
+            const checkboxes = document.querySelectorAll(`.product-extra-cb-${productId}:checked`);
+            const selectedExtras = Array.from(checkboxes).map(cb => {
+                const idx = parseInt(cb.getAttribute('data-extra-idx'));
+                return product.extras[idx];
+            }).filter(Boolean);
+
+            const noteInput = document.getElementById(`note-input-${productId}`);
+            const itemNote = noteInput ? noteInput.value.trim() : '';
+
+            const extrasPrice = selectedExtras.reduce((sum, ex) => sum + Number(ex.precio), 0);
+            const itemTotalPrice = Number(product.precio) + extrasPrice;
+
+            const cartItemId = 'item-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+
+            cart.push({
+                cartId: cartItemId,
+                nombre: product.nombre,
+                precioTotal: itemTotalPrice,
+                extras: selectedExtras,
+                nota: itemNote
+            });
+
+            checkboxes.forEach(cb => cb.checked = false);
+            if (noteInput) noteInput.value = '';
+            updateCardTotal(productId);
+
+            renderCart();
+        }
+
+        function removeFromCart(cartItemId) {
+            cart = cart.filter(item => item.cartId !== cartItemId);
+            renderCart();
+        }
+
+        function renderCart() {
+            const cartContainer = document.getElementById('cart-items');
+            const cartCount = document.getElementById('cart-count');
+            const cartTotal = document.getElementById('cart-total');
+            const emptyMsg = document.getElementById('empty-cart-msg');
+            const totalContainer = document.getElementById('cart-total-container');
+
+            cartCount.innerText = `${cart.length} ítem${cart.length === 1 ? '' : 's'}`;
+
+            if (cart.length === 0) {
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
+                totalContainer.classList.add('hidden');
+                cartContainer.innerHTML = '<p id="empty-cart-msg" class="text-slate-400 text-center py-6 text-xs font-medium">Aún no agregaste productos al carrito</p>';
+                return;
+            }
+
+            totalContainer.classList.remove('hidden');
+
+            const grandTotal = cart.reduce((sum, item) => sum + item.precioTotal, 0);
+            cartTotal.innerText = `$${grandTotal}`;
+
+            cartContainer.innerHTML = cart.map(item => `
+                <div class="py-3 flex justify-between items-start gap-3">
+                    <div class="space-y-0.5">
+                        <p class="font-bold text-slate-900 text-xs">${item.nombre}</p>
+                        ${item.extras.length > 0 ? `<p class="text-[11px] text-amber-700 font-medium">+ ${item.extras.map(e => e.nombre).join(', ')}</p>` : ''}
+                        ${item.nota ? `<p class="text-[11px] text-slate-500 italic">Nota: "${item.nota}"</p>` : ''}
+                        <p class="text-xs font-black text-slate-900 mt-1">$${item.precioTotal}</p>
+                    </div>
+                    <button onclick="removeFromCart('${item.cartId}')" class="text-red-500 hover:text-red-600 p-1.5 transition">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function sendOrderWhatsApp() {
+            if (cart.length === 0) {
+                alert("Agregá al menos un producto al carrito.");
+                return;
+            }
+
+            const name = document.getElementById('client-name').value.trim();
+            const address = document.getElementById('client-address').value.trim();
+            const notes = document.getElementById('client-notes').value.trim();
+
+            if (!name || !address) {
+                alert("Por favor completá tu nombre y dirección.");
+                return;
+            }
+
+            let text = `*NUEVO PEDIDO - NALDO*\n\n`;
+            text += `*Cliente:* ${name}\n`;
+            text += `*Dirección:* ${address}\n`;
+            if (notes) text += `*Notas de envío:* ${notes}\n`;
+            text += `\n*Detalle del Pedido:*\n`;
+
+            cart.forEach((item, i) => {
+                text += `\n${i + 1}. *${item.nombre}* ($${item.precioTotal})`;
+                if (item.extras.length > 0) {
+                    text += `\n   Extras: ${item.extras.map(e => e.nombre).join(', ')}`;
+                }
+                if (item.nota) {
+                    text += `\n   Aclaración: ${item.nota}`;
+                }
+            });
+
+            const grandTotal = cart.reduce((sum, item) => sum + item.precioTotal, 0);
+            text += `\n\n*TOTAL FINAL: $${grandTotal}*`;
+
+            const phone = "5493815649551";
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        function addExtraInput(valName = '', valPrice = '') {
+            const container = document.getElementById('extras-inputs-container');
+            const div = document.createElement('div');
+            div.className = "flex gap-2 items-center extra-row";
+            div.innerHTML = `
+                <input type="text" placeholder="Extra (ej: Doble Cheddar)" value="${valName}" class="extra-name w-2/3 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-amber-500">
+                <input type="number" placeholder="Precio" min="0" value="${valPrice}" class="extra-price w-1/3 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-amber-500">
+                <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-600 text-xs p-1"><i class="fa-solid fa-xmark"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        async function saveProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('prod-id').value;
+            const nombre = document.getElementById('prod-nombre').value.trim();
+            const categoria = document.getElementById('prod-categoria').value;
+            const precio = parseInt(document.getElementById('prod-precio').value);
+            const descripcion = document.getElementById('prod-descripcion').value.trim();
+
+            const extraRows = document.querySelectorAll('.extra-row');
+            const extras = [];
+            extraRows.forEach(row => {
+                const exName = row.querySelector('.extra-name').value.trim();
+                const exPrice = row.querySelector('.extra-price').value;
+                if (exName && exPrice) {
+                    extras.push({ nombre: exName, precio: parseInt(exPrice) });
+                }
+            });
+
+            const productData = { nombre, categoria, precio, descripcion, disponible: true, extras };
+
+            let error;
+            if (id) {
+                const res = await _supabase.from('productos').update(productData).eq('id', id);
+                error = res.error;
+            } else {
+                const res = await _supabase.from('productos').insert([productData]);
+                error = res.error;
+            }
+
+            if (error) {
+                alert("Error al guardar producto: " + error.message);
+                return;
+            }
+
+            resetForm();
+            fetchProducts();
+        }
+
+        function editProduct(id) {
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            document.getElementById('prod-id').value = product.id;
+            document.getElementById('prod-nombre').value = product.nombre;
+            document.getElementById('prod-categoria').value = product.categoria;
+            document.getElementById('prod-precio').value = product.precio;
+            document.getElementById('prod-descripcion').value = product.descripcion || '';
+
+            const container = document.getElementById('extras-inputs-container');
+            container.innerHTML = '';
+            if (product.extras && Array.isArray(product.extras)) {
+                product.extras.forEach(ex => addExtraInput(ex.nombre, ex.precio));
+            }
+
+            document.getElementById('form-title').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500"></i> Editar Producto`;
+            document.getElementById('btn-submit-product').innerText = "Actualizar Producto";
+            document.getElementById('btn-cancel-edit').classList.remove('hidden');
+        }
+
+        function resetForm() {
+            document.getElementById('product-form').reset();
+            document.getElementById('prod-id').value = '';
+            document.getElementById('extras-inputs-container').innerHTML = '';
+            document.getElementById('form-title').innerHTML = `<i class="fa-solid fa-plus text-amber-500"></i> Nuevo Producto`;
+            document.getElementById('btn-submit-product').innerText = "Guardar Producto";
+            document.getElementById('btn-cancel-edit').classList.add('hidden');
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm("¿Seguro que querés eliminar este producto?")) return;
+            const { error } = await _supabase.from('productos').delete().eq('id', id);
+            if (error) {
+                alert("Error al eliminar: " + error.message);
+                return;
+            }
+            fetchProducts();
+        }
+
+        function renderAdminProducts() {
+            const list = document.getElementById('admin-products-list');
+            list.innerHTML = products.map(p => `
+                <div class="py-2.5 flex justify-between items-center text-slate-700">
+                    <div>
+                        <p class="font-bold text-slate-900 text-xs">${p.nombre} <span class="text-[11px] font-semibold text-amber-600">($${p.precio})</span></p>
+                        <p class="text-[10px] text-slate-400">${p.categoria}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="editProduct(${p.id})" class="text-amber-600 hover:text-amber-700 text-xs p-1">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteProduct(${p.id})" class="text-red-500 hover:text-red-600 text-xs p-1">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleMenu() { document.getElementById('side-menu').classList.toggle('hidden'); }
+        function openLoginModal() { toggleMenu(); document.getElementById('modal-login').classList.remove('hidden'); }
+        function closeLoginModal() { document.getElementById('modal-login').classList.add('hidden'); }
+        function openAdminModal() { toggleMenu(); document.getElementById('modal-admin').classList.remove('hidden'); }
+        function closeAdminModal() { document.getElementById('modal-admin').classList.add('hidden'); }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-pass').value;
+
+            const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                alert("Error de autenticación: " + error.message);
+                return;
+            }
+            closeLoginModal();
+            checkSession();
+        }
+
+        async function logout() {
+            await _supabase.auth.signOut();
+            checkSession();
+            toggleMenu();
+        }
+
+        async function checkSession() {
+            const { data: { session } } = await _supabase.auth.getSession();
+            updateUIAuth(session);
+        }
+
+        function updateUIAuth(session) {
+            if (session) {
+                document.getElementById('btn-login-modal').classList.add('hidden');
+                document.getElementById('btn-admin-panel').classList.remove('hidden');
+                document.getElementById('btn-logout').classList.remove('hidden');
+            } else {
+                document.getElementById('btn-login-modal').classList.remove('hidden');
+                document.getElementById('btn-admin-panel').classList.add('hidden');
+                document.getElementById('btn-logout').classList.add('hidden');
+            }
+        }
+
+        _supabase.auth.onAuthStateChange((_event, session) => {
+            updateUIAuth(session);
+        });
+
+        loadAppData();
+        checkSession();
+    </script>
+</body>
+</html>
